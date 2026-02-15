@@ -16,5 +16,4 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - run: cargo install --locked soroban-cli --version 20.0.0
       - run: make build
