@@ -1,5 +1,7 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, Bytes, BytesN};
+
+mod tests;
 
 #[contracttype]
 #[derive(Clone)]
@@ -15,6 +17,7 @@ pub struct Invoice {
 pub enum DataKey {
     Invoice(u64), // Maps ID -> Invoice
     TokenId,      // Tracks the next available ID
+    BackendPubkey, // Backend public key for signature verification
 }
 
 #[contract]
@@ -22,9 +25,55 @@ pub struct InvoiceContract;
 
 #[contractimpl]
 impl InvoiceContract {
-    // 1. MINT: Create a new Invoice NFT
-    pub fn mint(env: Env, owner: Address, amount: i128, due_date: u64) -> u64 {
+    // Helper function to extend storage TTL
+    fn extend_storage_ttl(env: &Env) {
+        // Extend TTL to 535,680 ledgers (approx 30 days)
+        env.storage().instance().extend_ttl(535_680, 535_680);
+    }
+
+    // Helper function to check admin authorization
+    fn require_admin(env: &Env) {
+        let admin: Address = env.storage().instance().get(&DataKey::BackendPubkey)
+            .expect("Backend pubkey not set");
+        admin.require_auth();
+    }
+
+    // SET BACKEND PUBKEY: Initialize backend public key for signature verification
+    pub fn set_backend_pubkey(env: Env, pubkey: BytesN<32>) {
+        // For simplicity, we'll allow anyone to set this initially
+        // In production, this should be admin-only
+        env.storage().instance().set(&DataKey::BackendPubkey, &pubkey);
+        Self::extend_storage_ttl(&env);
+    }
+
+    // Helper function to verify backend signature
+    fn verify_signature(env: &Env, user: &Address, amount: i128, risk_score: u32, signature: &BytesN<64>) -> bool {
+        let backend_pubkey: BytesN<32> = env.storage().instance().get(&DataKey::BackendPubkey)
+            .expect("Backend pubkey not set");
+        
+        // Create message payload: (user_address, invoice_amount, risk_score)
+        let mut payload = Vec::new(&env);
+        payload.push_back(&user.to_contract());
+        payload.push_back(&amount);
+        payload.push_back(&risk_score);
+        
+        env.crypto().ed25519_verify(&backend_pubkey, signature, &payload.to_vec())
+    }
+
+    // 1. MINT: Create a new Invoice NFT with signature verification
+    pub fn mint(env: Env, owner: Address, amount: i128, due_date: u64, risk_score: u32, signature: BytesN<64>) -> u64 {
         owner.require_auth(); // Ensure the caller is who they say they are
+
+        // Check if invoice is expired
+        let current_timestamp = env.ledger().timestamp();
+        if due_date <= current_timestamp {
+            panic!("INVOICE_EXPIRED");
+        }
+
+        // Verify backend signature
+        if !Self::verify_signature(&env, &owner, amount, risk_score, &signature) {
+            panic!("INVALID_SIGNATURE");
+        }
 
         // Get the current ID count
         let mut current_id = env.storage().instance().get(&DataKey::TokenId).unwrap_or(0u64);
@@ -42,6 +91,7 @@ impl InvoiceContract {
         // Save to storage
         env.storage().instance().set(&DataKey::Invoice(current_id), &invoice);
         env.storage().instance().set(&DataKey::TokenId, &current_id);
+        Self::extend_storage_ttl(&env);
 
         // Emit an event (so our API can see it later)
         env.events().publish((Symbol::new(&env, "mint"), owner), current_id);
@@ -64,6 +114,7 @@ impl InvoiceContract {
         invoice.is_repaid = true;
 
         env.storage().instance().set(&DataKey::Invoice(id), &invoice);
+        Self::extend_storage_ttl(&env);
         
         env.events().publish((Symbol::new(&env, "repay"), invoice.owner), id);
     }
