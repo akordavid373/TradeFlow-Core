@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, Bytes, BytesN};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, BytesN};
 
 mod tests;
 
@@ -53,11 +53,12 @@ impl InvoiceContract {
         
         // Create message payload: (user_address, invoice_amount, risk_score)
         let mut payload = Vec::new(&env);
-        payload.push_back(&user.to_contract());
+        payload.push_back(user);
         payload.push_back(&amount);
         payload.push_back(&risk_score);
         
-        env.crypto().ed25519_verify(&backend_pubkey, signature, &payload.to_vec())
+        let message = payload.to_vec();
+        env.crypto().ed25519_verify(&backend_pubkey, &message, signature)
     }
 
     // 1. MINT: Create a new Invoice NFT with signature verification

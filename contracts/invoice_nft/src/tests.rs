@@ -1,5 +1,5 @@
-use soroban_sdk::{Address, Env, Symbol, contracterror};
-use crate::{InvoiceContract, Invoice, DataKey};
+use soroban_sdk::contracterror;
+use crate::InvoiceContract;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -16,6 +16,7 @@ pub enum Error {
 mod tests {
     use super::*;
     use soroban_sdk::{testutils::Address as TestAddress, testutils::Bytes as TestBytes, Bytes};
+    use soroban_sdk::contractclient::InvoiceContractClient;
 
     #[test]
     fn test_mint_invoice_success() {
