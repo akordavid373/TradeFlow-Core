@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, BytesN};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, BytesN, Bytes};
 
 mod tests;
 
@@ -57,7 +57,7 @@ impl InvoiceContract {
         payload.push_back(&amount);
         payload.push_back(&risk_score);
         
-        let message = payload.to_vec();
+        let message: Bytes = payload.to_val().try_into().unwrap();
         env.crypto().ed25519_verify(&backend_pubkey, &message, signature)
     }
 
