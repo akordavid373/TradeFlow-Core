@@ -82,7 +82,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// 404 handler
+// Global 404 Not Found handler - catches all unmatched routes
+// Must be placed after all other route declarations
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
