@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, Symbol, BytesN, symbol_short};
+use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, BytesN, symbol_short};
 
 mod tests;
 
@@ -164,7 +164,7 @@ impl LendingPool {
         env.storage().instance().set(&DataKey::LoanId, &loan_id);
         Self::extend_storage_ttl(&env);
 
-        env.events().publish((symbol_short!("loan_created"), borrower), loan_id);
+        env.events().publish((symbol_short!("loan_create"), borrower), loan_id);
         loan_id
     }
 
@@ -248,7 +248,7 @@ impl LendingPool {
         Self::extend_storage_ttl(&env);
 
         // In a real implementation, we would transfer the NFT to the liquidator
-        env.events().publish((symbol_short!("loan_liquidated"), liquidator), loan_id);
+        env.events().publish((symbol_short!("loan_liquid"), liquidator), loan_id);
     }
 
     // GET LOAN: Retrieve loan details
