@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, BytesN, Val};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, BytesN, Val, symbol_short};
 
 mod tests;
 
@@ -95,7 +95,7 @@ impl InvoiceContract {
         Self::extend_storage_ttl(&env);
 
         // Emit an event (so our API can see it later)
-        env.events().publish((Symbol::new(&env, "mint"), owner), current_id);
+        env.events().publish((symbol_short!("mint"), owner), current_id);
 
         current_id
     }
@@ -117,6 +117,6 @@ impl InvoiceContract {
         env.storage().instance().set(&DataKey::Invoice(id), &invoice);
         Self::extend_storage_ttl(&env);
         
-        env.events().publish((Symbol::new(&env, "repay"), invoice.owner), id);
+        env.events().publish((symbol_short!("repay"), invoice.owner), id);
     }
 }
