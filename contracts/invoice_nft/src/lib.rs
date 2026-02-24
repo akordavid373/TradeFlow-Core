@@ -1,5 +1,4 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Vec, BytesN, symbol_short};
 
 mod tests;
 
@@ -57,9 +56,7 @@ impl InvoiceContract {
         payload.push_back(amount.into_val(&env));
         payload.push_back(risk_score.into_val(&env));
         
-        let message_bytes = payload.try_into_val(&env).unwrap();
-        env.crypto().ed25519_verify(&backend_pubkey, &message_bytes, signature);
-        true
+
     }
 
     // 1. MINT: Create a new Invoice NFT with signature verification
